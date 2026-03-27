@@ -15,7 +15,9 @@ use crossterm::{
 use ratatui::{
     DefaultTerminal, Terminal,
     backend::CrosstermBackend,
+    layout::{Constraint, Direction, Layout},
     style::{Color, Style},
+    text::{Line, Span},
     widgets::{Block, Borders, Paragraph},
 };
 use rodio::{Decoder, Source};
@@ -73,14 +75,42 @@ fn main() -> Result<()> {
 
     let mut tui = Tui::new()?;
     let mut is_playing = false;
+    let mut volume: f32 = 0.5;
 
     loop {
         tui.terminal.draw(|f| {
-            let display_text = Paragraph::new(format!("Playing: {}", input_file))
-                .style(Style::default().fg(Color::Cyan))
-                .block(Block::default().title("Mp3 cut").borders(Borders::ALL));
+            let main_chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Length(3), // Header
+                    Constraint::Min(10),   // Waveform
+                    Constraint::Length(3), // Footer / Controls
+                ])
+                .split(f.area());
 
-            f.render_widget(display_text, f.area());
+            let status = if is_playing { "PLAYING" } else { "PAUSED " };
+            let status_color = if is_playing {
+                Color::Green
+            } else {
+                Color::Yellow
+            };
+
+            let header = Paragraph::new(vec![Line::from(vec![
+                Span::styled(
+                    " CUTERS ",
+                    Style::default().fg(Color::Black).bg(Color::Cyan),
+                ),
+                Span::raw(format!("  File: {}  ", input_file)),
+                Span::styled(format!("[{}]", status), Style::default().fg(status_color)),
+                Span::raw(format!("  Vol: {:.0}%", volume * 100.0)),
+            ])])
+            .block(Block::default().borders(Borders::ALL));
+            f.render_widget(header, main_chunks[0]);
+
+            let display_text = Paragraph::new(format!("File: {}", input_file))
+                .style(Style::default().fg(Color::Cyan))
+                .block(Block::default().borders(Borders::ALL));
+            f.render_widget(display_text, main_chunks[1]);
         })?;
 
         if event::poll(std::time::Duration::from_millis(50))? {
@@ -90,11 +120,13 @@ fn main() -> Result<()> {
                         KeyCode::Char('q') => {
                             break;
                         }
-                        KeyCode::Char('h') => {
-                            todo!()
-                        }
                         KeyCode::Char('j') => {
-                            todo!()
+                            volume = (volume - 0.05).max(0.0);
+                            player.set_volume(volume);
+                        }
+                        KeyCode::Char('k') => {
+                            volume = (volume + 0.05).min(2.0);
+                            player.set_volume(volume);
                         }
                         KeyCode::Char('k') => {
                             todo!()
