@@ -25,7 +25,7 @@ use rodio::{Decoder, Source};
 #[derive(Debug)]
 enum SelectedHandle {
     Left,
-    PlayHead,
+    Playhead,
     Right,
 }
 
@@ -76,6 +76,7 @@ fn main() -> Result<()> {
     let mut tui = Tui::new()?;
     let mut is_playing = false;
     let mut volume: f32 = 0.5;
+    let mut selected = SelectedHandle::Playhead;
 
     loop {
         tui.terminal.draw(|f| {
@@ -111,6 +112,13 @@ fn main() -> Result<()> {
                 .style(Style::default().fg(Color::Cyan))
                 .block(Block::default().borders(Borders::ALL));
             f.render_widget(display_text, main_chunks[1]);
+
+            let sel_text = match selected {
+                SelectedHandle::Left => "START MARKER",
+                SelectedHandle::Playhead => "PLAYHEAD",
+                SelectedHandle::Right => "END MARKER",
+            };
+            f.render_widget(footer(sel_text.to_string()), main_chunks[2]);
         })?;
 
         if event::poll(std::time::Duration::from_millis(50))? {
@@ -128,7 +136,7 @@ fn main() -> Result<()> {
                             volume = (volume + 0.05).min(2.0);
                             player.set_volume(volume);
                         }
-                        KeyCode::Char('k') => {
+                        KeyCode::Char('h') => {
                             todo!()
                         }
                         KeyCode::Char('l') => {
@@ -153,4 +161,27 @@ fn main() -> Result<()> {
     drop(tui);
 
     Ok(())
+}
+
+fn footer(sel_text: String) -> Paragraph<'static> {
+    return Paragraph::new(vec![Line::from(vec![
+        Span::raw(" [Selected: "),
+        Span::styled(
+            sel_text,
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(ratatui::style::Modifier::BOLD),
+        ),
+        Span::raw("] | "),
+        Span::styled("Space", Style::default().fg(Color::Cyan)),
+        Span::raw(" Play/Pause | "),
+        Span::styled("1/2/3", Style::default().fg(Color::Cyan)),
+        Span::raw(" Choose Handle | "),
+        Span::styled("H/L", Style::default().fg(Color::Cyan)),
+        Span::raw(" Adjust | "),
+        Span::styled("J/K", Style::default().fg(Color::Cyan)),
+        Span::raw(" Vol | "),
+        Span::styled("Q", Style::default().fg(Color::Red)),
+        Span::raw(" Quit"),
+    ])]);
 }
