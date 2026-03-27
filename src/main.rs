@@ -1,8 +1,47 @@
-use std::{env, error::Error, fs::File, io::BufReader, time::Duration};
+use std::{
+    env,
+    fs::File,
+    io::{self, BufReader},
+    time::Duration,
+};
 
+use color_eyre::eyre::Result;
+
+use crossterm::event::{self, KeyCode, KeyEventKind};
+use ratatui::{
+    DefaultTerminal,
+    backend::CrosstermBackend,
+    style::{Color, Style},
+    widgets::{Block, Borders, Paragraph},
+};
 use rodio::{Decoder, Source};
 
-fn main() -> Result<(), Box<dyn Error>> {
+// #[derive(Debug)]
+// enum SelectedHandle {
+//     Left,
+//     PlayHead,
+//     Right,
+// }
+
+// struct Tui {
+//     terminal: DefaultTerminal,
+// }
+
+// impl Tui {
+//     fn new(title: &String) -> Result<Self> {
+//         let stdout = io::stdout();
+//         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
+//         Ok(Self { terminal })
+//     }
+// }
+
+// impl Drop for Tui {
+//     fn drop(&mut self) {
+//         // self.terminal.clear();
+//     }
+// }
+
+fn main() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     let input_file = args.get(1).expect("Usage: cargo run <path_to_mp3>");
     let file = File::open(input_file)?;
@@ -13,13 +52,50 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Path: {}", input_file);
     println!("Duration: {:?}s", total_secs);
 
-    let handle =
-        rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open audio device");
+    // let handle =
+    //     rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open audio device");
 
-    let file_to_play = File::open(input_file)?;
-    let player = rodio::play(&handle.mixer(), file_to_play);
+    // let file_to_play = File::open(input_file)?;
+    // let mut player = rodio::play(&handle.mixer(), file_to_play)?;
 
-    std::thread::sleep(Duration::from_secs(2));
+    // std::thread::sleep(Duration::from_secs(2));
+
+    let mut terminal = DefaultTerminal::new(CrosstermBackend::new(io::stdout()))?;
+
+    loop {
+        terminal.draw(|f| {
+            let display_text = Paragraph::new(format!("Playing: {}", input_file))
+                .style(Style::default().fg(Color::Cyan))
+                .block(Block::default().title("Mp3 cut").borders(Borders::ALL));
+
+            f.render_widget(display_text, f.area());
+        })?;
+
+        if event::poll(std::time::Duration::from_millis(50))? {
+            if let event::Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    match key.code {
+                        KeyCode::Char('q') => {
+                            break;
+                        }
+                        KeyCode::Char('h') => {
+                            todo!()
+                        }
+                        KeyCode::Char('j') => {
+                            todo!()
+                        }
+                        KeyCode::Char('k') => {
+                            todo!()
+                        }
+                        KeyCode::Char('l') => {
+                            todo!()
+                        }
+                        _ => {}
+                    }
+                }
+            }
+        };
+    }
 
     Ok(())
 }
