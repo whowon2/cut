@@ -7,41 +7,50 @@ use std::{
 
 use color_eyre::eyre::Result;
 
-use crossterm::event::{self, KeyCode, KeyEventKind};
+use crossterm::{
+    ExecutableCommand,
+    event::{self, KeyCode, KeyEventKind},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
+};
 use ratatui::{
-    DefaultTerminal,
+    DefaultTerminal, Terminal,
     backend::CrosstermBackend,
     style::{Color, Style},
     widgets::{Block, Borders, Paragraph},
 };
 use rodio::{Decoder, Source};
 
-// #[derive(Debug)]
-// enum SelectedHandle {
-//     Left,
-//     PlayHead,
-//     Right,
-// }
+#[derive(Debug)]
+enum SelectedHandle {
+    Left,
+    PlayHead,
+    Right,
+}
 
-// struct Tui {
-//     terminal: DefaultTerminal,
-// }
+struct Tui {
+    terminal: DefaultTerminal,
+}
 
-// impl Tui {
-//     fn new(title: &String) -> Result<Self> {
-//         let stdout = io::stdout();
-//         let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
-//         Ok(Self { terminal })
-//     }
-// }
+impl Tui {
+    fn new() -> Result<Self> {
+        enable_raw_mode()?;
+        let mut stdout = io::stdout();
+        stdout.execute(EnterAlternateScreen)?;
+        let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
+        Ok(Self { terminal })
+    }
+}
 
-// impl Drop for Tui {
-//     fn drop(&mut self) {
-//         // self.terminal.clear();
-//     }
-// }
+impl Drop for Tui {
+    fn drop(&mut self) {
+        let _ = disable_raw_mode();
+        let _ = io::stdout().execute(LeaveAlternateScreen);
+    }
+}
 
 fn main() -> Result<()> {
+    color_eyre::install()?;
+
     let args: Vec<String> = env::args().collect();
     let input_file = args.get(1).expect("Usage: cargo run <path_to_mp3>");
     let file = File::open(input_file)?;
@@ -60,10 +69,10 @@ fn main() -> Result<()> {
 
     // std::thread::sleep(Duration::from_secs(2));
 
-    let mut terminal = DefaultTerminal::new(CrosstermBackend::new(io::stdout()))?;
+    let mut tui = Tui::new()?;
 
     loop {
-        terminal.draw(|f| {
+        tui.terminal.draw(|f| {
             let display_text = Paragraph::new(format!("Playing: {}", input_file))
                 .style(Style::default().fg(Color::Cyan))
                 .block(Block::default().title("Mp3 cut").borders(Borders::ALL));
@@ -96,6 +105,8 @@ fn main() -> Result<()> {
             }
         };
     }
+
+    drop(tui);
 
     Ok(())
 }
