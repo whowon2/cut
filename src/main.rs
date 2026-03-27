@@ -61,15 +61,18 @@ fn main() -> Result<()> {
     println!("Path: {}", input_file);
     println!("Duration: {:?}s", total_secs);
 
-    // let handle =
-    //     rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open audio device");
+    let handle =
+        rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open audio device");
 
-    // let file_to_play = File::open(input_file)?;
-    // let mut player = rodio::play(&handle.mixer(), file_to_play)?;
+    let file_to_play = File::open(input_file)?;
+    let mut player = rodio::play(&handle.mixer(), file_to_play)?;
 
-    // std::thread::sleep(Duration::from_secs(2));
+    player.pause();
+
+    player.set_volume(0.1);
 
     let mut tui = Tui::new()?;
+    let mut is_playing = false;
 
     loop {
         tui.terminal.draw(|f| {
@@ -98,6 +101,15 @@ fn main() -> Result<()> {
                         }
                         KeyCode::Char('l') => {
                             todo!()
+                        }
+                        KeyCode::Char(' ') => {
+                            if is_playing {
+                                player.pause();
+                                is_playing = false;
+                            } else {
+                                player.play();
+                                is_playing = true;
+                            }
                         }
                         _ => {}
                     }
