@@ -13,5 +13,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     println!("Path: {}", input_file);
     println!("Duration: {:?}s", total_secs);
 
+    let handle =
+        rodio::DeviceSinkBuilder::open_default_sink().expect("Failed to open audio device");
+
+    let file_to_play = File::open(input_file)?;
+    let player = rodio::play(&handle.mixer(), file_to_play);
+
+    std::thread::sleep(Duration::from_secs(2));
+
     Ok(())
 }
